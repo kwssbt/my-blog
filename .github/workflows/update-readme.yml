@@ -22,10 +22,10 @@ jobs:
       - name: Generate Blog Index
         run: |
           # 1. 写入标题和简介
-          echo "# ssbt 的技术博客" > README.md
-          echo "个人学习笔记与技术随笔，由 GitHub Actions 自动维护目录。" >> README.md
+          echo "# ssbt 的算法博客" > README.md
+          echo "个人学习笔记与随笔，由 GitHub Actions 自动维护目录。" >> README.md
           echo "" >> README.md
-          echo "## 📚 文章列表" >> README.md
+          echo "## 目录" >> README.md
 
           # 2. 遍历所有 index.md 并提取标题
           # 逻辑：查找 index.md，排除 README，按修改时间排序
