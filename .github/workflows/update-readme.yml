@@ -1,0 +1,52 @@
+name: Auto Update Blog Index
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - '**/index.md'
+      - '**.md'
+
+jobs:
+  update-index:
+    runs-on: ubuntu-latest
+    # 授予 Action 写权限，以便它能更新 README
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Generate Blog Index
+        run: |
+          # 1. 写入标题和简介
+          echo "# ssbt 的技术博客" > README.md
+          echo "个人学习笔记与技术随笔，由 GitHub Actions 自动维护目录。" >> README.md
+          echo "" >> README.md
+          echo "## 📚 文章列表" >> README.md
+
+          # 2. 遍历所有 index.md 并提取标题
+          # 逻辑：查找 index.md，排除 README，按修改时间排序
+          find . -name "index.md" | grep -v "README.md" | sort -r | while read -r path; do
+            # 提取 Markdown 里的第一个一级标题 (# )，如果没有则使用文件夹名
+            title=$(grep -m 1 '^# ' "$path" | sed 's/^# //')
+            if [ -z "$title" ]; then
+              title=$(basename $(dirname "$path"))
+            fi
+            
+            # 获取该文件的最后修改日期（可选）
+            date=$(git log -1 --format="%ad" --date=short -- "$path" || date +%Y-%m-%d)
+            
+            # 写入 README
+            echo "- [$title]($path)  - *$date*" >> README.md
+          done
+
+      - name: Commit and Push
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add README.md
+          # 只有在 README 有变化时才提交
+          git diff --quiet && git diff --staged --quiet || (git commit -m "docs: 自动更新博客目录" && git push)
