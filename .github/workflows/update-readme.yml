@@ -1,16 +1,14 @@
-name: Auto Update Blog Index
+name: Auto Blog Index
 
 on:
   push:
     branches: [ main ]
     paths:
-      - '**/index.md'
-      - '**.md'
+      - 'posts/**.md'
 
 jobs:
   update-index:
     runs-on: ubuntu-latest
-    # 授予 Action 写权限，以便它能更新 README
     permissions:
       contents: write
 
@@ -19,34 +17,51 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Generate Blog Index
+      - name: Generate README
         run: |
-          # 1. 写入标题和简介
-          echo "# ssbt 的算法博客" > README.md
-          echo "个人学习笔记与随笔，由 GitHub Actions 自动维护目录。" >> README.md
+          # 1. 设置 README 头部
+          echo "# 我的技术博客" > README.md
+          echo "> 记录成长，分享技术。此目录由 GitHub Actions 自动更新。" >> README.md
           echo "" >> README.md
-          echo "## 目录" >> README.md
+          echo "## 📂 文章归档" >> README.md
 
-          # 2. 遍历所有 index.md 并提取标题
-          # 逻辑：查找 index.md，排除 README，按修改时间排序
-          find . -name "index.md" | grep -v "README.md" | sort -r | while read -r path; do
-            # 提取 Markdown 里的第一个一级标题 (# )，如果没有则使用文件夹名
-            title=$(grep -m 1 '^# ' "$path" | sed 's/^# //')
-            if [ -z "$title" ]; then
-              title=$(basename $(dirname "$path"))
+          # 2. 递归查找 posts 文件夹下的 md 文件，按路径倒序排列
+          curr_y=""
+          curr_m=""
+          
+          find posts -name "*.md" | sort -r | while read -r path; do
+            # 提取年份和月份 (假设路径为 posts/2026/03/文件名.md)
+            year=$(echo "$path" | cut -d'/' -f2)
+            month=$(echo "$path" | cut -d'/' -f3)
+
+            # 年份分级 (一级列表)
+            if [ "$year" != "$curr_y" ]; then
+              echo "- **$year 年**" >> README.md
+              curr_y=$year
+              curr_m="" # 跨年重置月份
             fi
+
+            # 月份分级 (二级列表，缩进 2 空格)
+            if [ "$month" != "$curr_m" ]; then
+              echo "  - **$month 月**" >> README.md
+              curr_m=$month
+            fi
+
+            # 文章标题 (三级列表，缩进 4 空格)
+            # 优先提取文件内的一级标题，如果没有则使用文件名
+            title=$(grep -m 1 '^# ' "$path" | sed 's/^# //')
+            [ -z "$title" ] && title=$(basename "$path" .md)
             
-            # 获取该文件的最后修改日期（可选）
-            date=$(git log -1 --format="%ad" --date=short -- "$path" || date +%Y-%m-%d)
-            
-            # 写入 README
-            echo "- [$title]($path)  - *$date*" >> README.md
+            echo "    - [$title]($path)" >> README.md
           done
+
+          echo "" >> README.md
+          echo "---" >> README.md
+          echo "最后更新于: $(date +'%Y-%m-%d %H:%M') (UTC)" >> README.md
 
       - name: Commit and Push
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
           git add README.md
-          # 只有在 README 有变化时才提交
-          git diff --quiet && git diff --staged --quiet || (git commit -m "docs: 自动更新博客目录" && git push)
+          git diff --quiet && git diff --staged --quiet || (git commit -m "docs: 自动更新博客目录结构" && git push)
