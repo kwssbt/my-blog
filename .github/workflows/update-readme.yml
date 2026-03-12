@@ -20,8 +20,8 @@ jobs:
       - name: Generate README
         run: |
           # 1. 设置 README 头部
-          echo "# 我的技术博客" > README.md
-          echo "> 记录成长，分享技术。此目录由 GitHub Actions 自动更新。" >> README.md
+          echo "# 我的代码博客" > README.md
+          echo "> 记录成长，分享学习。此目录由 GitHub Actions 自动更新。" >> README.md
           echo "" >> README.md
           echo "## 📂 文章归档" >> README.md
 
